@@ -1,4 +1,4 @@
-![Image Description](speedllama.webp)
+<img src="speedllama.webp" alt="SpeedLLama Logo" width="400" align="center">
 
 # SpeedLLama
 
