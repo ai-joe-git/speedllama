@@ -9,8 +9,9 @@ This project sets up a local ChatGPT-like environment using the dolphin-2.9.3-qw
 To install and run this project, use the following command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ai-joe-git/speedllama/main/setup.sh | bash
-```
+curl -fsSL https://raw.githubusercontent.com/ai-joe-git/speedllama/main/setup.sh -o setup.sh
+chmod +x setup.sh
+sudo ./setup.sh```
 
 ## Prerequisites
 
