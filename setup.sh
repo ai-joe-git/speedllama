@@ -82,12 +82,19 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . /app
 
 RUN python -m venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir fastapi uvicorn pydantic llama-cpp-python
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir fastapi uvicorn pydantic llama-cpp-python
 
 EXPOSE 8000
 
