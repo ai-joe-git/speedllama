@@ -1,3 +1,5 @@
+![Image Description](speedllama.webp)
+
 # SpeedLLama
 
 This project sets up a local ChatGPT-like environment using the dolphin-2.9.3-qwen2-0.5b model. It includes a FastAPI backend and a simple HTML/JavaScript frontend, all containerized with Docker for easy deployment.
