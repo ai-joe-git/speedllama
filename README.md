@@ -11,7 +11,8 @@ To install and run this project, use the following command:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ai-joe-git/speedllama/main/setup.sh -o setup.sh
 chmod +x setup.sh
-sudo ./setup.sh```
+sudo ./setup.sh
+```
 
 ## Prerequisites
 
