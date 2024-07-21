@@ -6,21 +6,8 @@ chmod +x "$0"
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Update system and install dependencies
-echo "Updating system and installing dependencies..."
-sudo apt update
-sudo apt install -y build-essential cmake gcc g++ python3-dev python3-pip git curl python3-venv
-
 # Create project structure
 mkdir -p backend frontend models
-
-# Create virtual environment
-python3 -m venv speedllama_env
-source speedllama_env/bin/activate
-
-# Upgrade pip and install Python dependencies
-pip install --upgrade pip
-pip install fastapi uvicorn pydantic llama-cpp-python
 
 # Create backend.py
 cat > backend/backend.py << EOL
@@ -97,7 +84,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN python3 -m venv /app/venv
+RUN python -m venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 
 RUN pip install --no-cache-dir fastapi uvicorn pydantic llama-cpp-python
@@ -247,6 +234,16 @@ services:
       - ./frontend:/usr/share/nginx/html
 EOL
 
+# Create a virtual environment
+python3 -m venv speedllama_env
+
+# Activate the virtual environment
+source speedllama_env/bin/activate
+
+# Upgrade pip and install dependencies in the virtual environment
+pip install --upgrade pip
+pip install fastapi uvicorn pydantic llama-cpp-python
+
 # Download the dolphin-2.9.3-qwen2-0.5b GGUF model
 echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
 curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf
@@ -254,19 +251,15 @@ curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resol
 # Check if Docker is installed
 if ! command -v docker &> /dev/null
 then
-    echo "Docker is not installed. Installing Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
-    sudo usermod -aG docker $USER
-    echo "Please log out and log back in for Docker permissions to take effect."
+    echo "Docker is not installed. Please install Docker and try again."
+    exit 1
 fi
 
 # Check if Docker Compose is installed
 if ! command -v docker-compose &> /dev/null
 then
-    echo "Docker Compose is not installed. Installing Docker Compose..."
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
+    echo "Docker Compose is not installed. Please install Docker Compose and try again."
+    exit 1
 fi
 
 # Build and start the Docker containers
@@ -276,3 +269,6 @@ docker-compose up --build -d
 echo "Setup complete! Your local ChatGPT clone is now running."
 echo "Frontend: http://localhost:8080"
 echo "Backend: http://localhost:8000"
+
+# Deactivate the virtual environment
+deactivate
