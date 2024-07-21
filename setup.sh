@@ -6,22 +6,21 @@ chmod +x "$0"
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Update and install system dependencies
+# Update system and install dependencies
 echo "Updating system and installing dependencies..."
 sudo apt update
-sudo apt install -y build-essential cmake gcc g++ python3-dev python3-pip git curl
-
-# Upgrade pip and install Python dependencies
-echo "Upgrading pip and installing Python dependencies..."
-pip install --upgrade pip setuptools wheel
-pip install fastapi uvicorn pydantic
-
-# Install llama-cpp-python with specific flags
-echo "Installing llama-cpp-python..."
-CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" pip install llama-cpp-python --no-cache-dir
+sudo apt install -y build-essential cmake gcc g++ python3-dev python3-pip git curl python3-venv
 
 # Create project structure
 mkdir -p backend frontend models
+
+# Create virtual environment
+python3 -m venv speedllama_env
+source speedllama_env/bin/activate
+
+# Upgrade pip and install Python dependencies
+pip install --upgrade pip
+pip install fastapi uvicorn pydantic llama-cpp-python
 
 # Create backend.py
 cat > backend/backend.py << EOL
@@ -90,7 +89,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 EOL
 
-# Create an updated Dockerfile
+# Create Dockerfile
 cat > backend/Dockerfile << EOL
 FROM python:3.9-slim
 
@@ -98,16 +97,10 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    gcc \
-    g++ \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir fastapi uvicorn pydantic
-RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" pip install --no-cache-dir llama-cpp-python
+RUN pip install --no-cache-dir fastapi uvicorn pydantic llama-cpp-python
 
 EXPOSE 8000
 
@@ -124,74 +117,100 @@ cat > frontend/index.html << EOL
     <title>SpeedLLama</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
-        .chat-container { width: 80%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; }
-        .chat-header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-        .chat-messages { height: 300px; overflow-y: auto; padding: 20px; }
-        .message { margin-bottom: 10px; }
-        .user-message { text-align: right; }
-        .bot-message { text-align: left; }
-        .message-content { display: inline-block; padding: 8px 12px; border-radius: 20px; max-width: 70%; }
-        .user-message .message-content { background-color: #4CAF50; color: white; }
-        .bot-message .message-content { background-color: #f1f0f0; }
-        .chat-input { display: flex; padding: 20px; }
-        #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px; }
-        #send-button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #model-selector { margin-bottom: 10px; padding: 10px; width: 100%; }
+        .chat-container { width: 80%; max-width: 800px; background-color: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .chat-messages { height: 400px; overflow-y: auto; padding: 20px; }
+        .message { margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+        .user-message { background-color: #e6f2ff; text-align: right; }
+        .ai-message { background-color: #f0f0f0; }
+        .input-area { display: flex; padding: 20px; }
+        #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        #send-button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; margin-left: 10px; cursor: pointer; }
+        .model-select { padding: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">
-            <h2>SpeedLLama Chat</h2>
+        <select id="model-select" class="model-select">
+            <option value="">Select a model</option>
+        </select>
+        <div class="chat-messages" id="chat-messages">
         </div>
-        <select id="model-selector"></select>
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input">
+        <div class="input-area">
             <input type="text" id="user-input" placeholder="Type your message...">
             <button id="send-button">Send</button>
         </div>
     </div>
+
     <script>
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
-        const modelSelector = document.getElementById('model-selector');
+        const modelSelect = document.getElementById('model-select');
 
-        function addMessage(content, isUser = false) {
+        async function fetchModels() {
+            try {
+                const response = await fetch('http://localhost:8000/models');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch models');
+                }
+                const models = await response.json();
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching models:', error);
+                addMessage('Failed to load models. Please try again later.', false);
+            }
+        }
+
+        fetchModels();
+
+        function addMessage(content, isUser) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
-            messageDiv.innerHTML = \`<span class="message-content">\${content}</span>\`;
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'ai-message');
+            messageDiv.textContent = content;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         async function sendMessage() {
             const message = userInput.value.trim();
+            const selectedModel = modelSelect.value;
+
+            if (!selectedModel) {
+                addMessage('Please select a model first.', false);
+                return;
+            }
+
             if (message) {
                 addMessage(message, true);
                 userInput.value = '';
-
+                
                 try {
                     const response = await fetch('http://localhost:8000/chat', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
+                        body: JSON.stringify({ 
                             message: message,
-                            model: modelSelector.value
+                            model: selectedModel
                         }),
                     });
-
+                    
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
-
+                    
                     const data = await response.json();
-                    addMessage(data.response);
+                    addMessage(data.response, false);
                 } catch (error) {
                     console.error('Error:', error);
-                    addMessage('Sorry, there was an error processing your request.');
+                    addMessage('Sorry, there was an error processing your request.', false);
                 }
             }
         }
@@ -202,18 +221,6 @@ cat > frontend/index.html << EOL
                 sendMessage();
             }
         });
-
-        async function loadModels() {
-            try {
-                const response = await fetch('http://localhost:8000/models');
-                const models = await response.json();
-                modelSelector.innerHTML = models.map(model => \`<option value="\${model}">\${model}</option>\`).join('');
-            } catch (error) {
-                console.error('Error loading models:', error);
-            }
-        }
-
-        loadModels();
     </script>
 </body>
 </html>
@@ -229,6 +236,9 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models
+    environment:
+      - MODELS_DIR=/app/models
+
   frontend:
     image: nginx:alpine
     ports:
@@ -239,25 +249,30 @@ EOL
 
 # Download the dolphin-2.9.3-qwen2-0.5b GGUF model
 echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
-curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q4_K_M.gguf" -o models/dolphin-2.9.3-qwen2-0.5b.Q4_K_M.gguf
+curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf
 
-# Install Docker if not already installed
-if ! command -v docker &> /dev/null; then
-    echo "Docker not found. Installing Docker..."
+# Check if Docker is installed
+if ! command -v docker &> /dev/null
+then
+    echo "Docker is not installed. Installing Docker..."
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh get-docker.sh
     sudo usermod -aG docker $USER
-    echo "Please log out and log back in to use Docker without sudo."
+    echo "Please log out and log back in for Docker permissions to take effect."
 fi
 
-# Install Docker Compose if not already installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "Docker Compose not found. Installing Docker Compose..."
+# Check if Docker Compose is installed
+if ! command -v docker-compose &> /dev/null
+then
+    echo "Docker Compose is not installed. Installing Docker Compose..."
     sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     sudo chmod +x /usr/local/bin/docker-compose
 fi
 
+# Build and start the Docker containers
 echo "Building and starting Docker containers..."
 docker-compose up --build -d
 
-echo "Setup complete! You can access the application at http://localhost:8080"
+echo "Setup complete! Your local ChatGPT clone is now running."
+echo "Frontend: http://localhost:8080"
+echo "Backend: http://localhost:8000"
