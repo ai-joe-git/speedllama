@@ -244,9 +244,15 @@ source speedllama_env/bin/activate
 pip install --upgrade pip
 pip install fastapi uvicorn pydantic llama-cpp-python
 
-# Download the dolphin-2.9.3-qwen2-0.5b GGUF model
-echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
-curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf
+# Check if the GGUF model file already exists
+MODEL_FILE="models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf"
+if [ -f "$MODEL_FILE" ]; then
+    echo "GGUF model file already exists. Skipping download."
+else
+    # Download the dolphin-2.9.3-qwen2-0.5b GGUF model
+    echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
+    curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o "$MODEL_FILE"
+fi
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null
