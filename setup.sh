@@ -1,13 +1,49 @@
 #!/bin/bash
 
-# Make this script executable
-chmod +x "$0"
-
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Update package list and install necessary dependencies
+echo "Updating package list and installing dependencies..."
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+# Install Docker if not already installed
+if ! command_exists docker; then
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo usermod -aG docker $USER
+    rm get-docker.sh
+fi
+
+# Install Docker Compose if not already installed
+if ! command_exists docker-compose; then
+    echo "Installing Docker Compose..."
+    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+fi
+
+# Install Python3 and pip if not already installed
+if ! command_exists python3; then
+    echo "Installing Python3 and pip..."
+    sudo apt-get install -y python3 python3-pip
+fi
+
 # Create project structure
 mkdir -p backend frontend models
+
+# Create a Python virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install required Python packages
+pip install fastapi uvicorn pydantic llama-cpp-python
 
 # Create backend.py
 cat > backend/backend.py << EOL
@@ -84,6 +120,10 @@ WORKDIR /app
 
 COPY . /app
 
+# Create and activate virtual environment in the container
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 RUN pip install --no-cache-dir fastapi uvicorn pydantic llama-cpp-python
 
 EXPOSE 8000
@@ -109,16 +149,13 @@ cat > frontend/index.html << EOL
         .input-area { display: flex; padding: 20px; }
         #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
         #send-button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; margin-left: 10px; cursor: pointer; }
-        .model-select { padding: 10px; margin-bottom: 10px; }
+        #model-selector { margin-bottom: 10px; padding: 5px; }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <select id="model-select" class="model-select">
-            <option value="">Select a model</option>
-        </select>
-        <div class="chat-messages" id="chat-messages">
-        </div>
+        <select id="model-selector"></select>
+        <div class="chat-messages" id="chat-messages"></div>
         <div class="input-area">
             <input type="text" id="user-input" placeholder="Type your message...">
             <button id="send-button">Send</button>
@@ -129,78 +166,58 @@ cat > frontend/index.html << EOL
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
-        const modelSelect = document.getElementById('model-select');
+        const modelSelector = document.getElementById('model-selector');
 
-        async function fetchModels() {
-            try {
-                const response = await fetch('http://localhost:8000/models');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch models');
-                }
-                const models = await response.json();
+        // Fetch available models
+        fetch('http://localhost:8000/models')
+            .then(response => response.json())
+            .then(models => {
                 models.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
-                    modelSelect.appendChild(option);
+                    modelSelector.appendChild(option);
                 });
-            } catch (error) {
-                console.error('Error fetching models:', error);
-                addMessage('Failed to load models. Please try again later.', false);
-            }
-        }
+            });
 
-        fetchModels();
-
-        function addMessage(content, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.classList.add(isUser ? 'user-message' : 'ai-message');
-            messageDiv.textContent = content;
-            chatMessages.appendChild(messageDiv);
+        function addMessage(message, isUser = false) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(isUser ? 'user-message' : 'ai-message');
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        async function sendMessage() {
+        function sendMessage() {
             const message = userInput.value.trim();
-            const selectedModel = modelSelect.value;
-
-            if (!selectedModel) {
-                addMessage('Please select a model first.', false);
-                return;
-            }
-
             if (message) {
                 addMessage(message, true);
                 userInput.value = '';
-                
-                try {
-                    const response = await fetch('http://localhost:8000/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            message: message,
-                            model: selectedModel
-                        }),
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    
-                    const data = await response.json();
-                    addMessage(data.response, false);
-                } catch (error) {
+
+                fetch('http://localhost:8000/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        model: modelSelector.value
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage(data.response);
+                })
+                .catch((error) => {
                     console.error('Error:', error);
-                    addMessage('Sorry, there was an error processing your request.', false);
-                }
+                    addMessage('Error: Unable to get response from the server.');
+                });
             }
         }
 
         sendButton.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
+        userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
@@ -235,20 +252,6 @@ EOL
 echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
 curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null
-then
-    echo "Docker is not installed. Please install Docker and try again."
-    exit 1
-fi
-
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null
-then
-    echo "Docker Compose is not installed. Please install Docker Compose and try again."
-    exit 1
-fi
-
 # Build and start the Docker containers
 echo "Building and starting Docker containers..."
 docker-compose up --build -d
@@ -256,3 +259,8 @@ docker-compose up --build -d
 echo "Setup complete! Your local ChatGPT clone is now running."
 echo "Frontend: http://localhost:8080"
 echo "Backend: http://localhost:8000"
+
+# Deactivate the virtual environment
+deactivate
+
+echo "Note: You may need to log out and log back in for Docker to work without sudo."
