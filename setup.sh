@@ -12,10 +12,14 @@ mkdir -p backend frontend models
 # Create backend.py
 cat > backend/backend.py << EOL
 import os
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from llama_cpp import Llama
 from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -43,6 +47,7 @@ async def get_models():
         models = [f for f in os.listdir(models_dir) if f.endswith('.gguf')]
         return models
     except Exception as e:
+        logger.error(f"Error getting models: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat", response_model=ChatResponse)
@@ -51,24 +56,29 @@ async def chat(request: ChatRequest):
         model_path = os.path.join(models_dir, request.model)
         
         if not os.path.exists(model_path):
+            logger.error(f"Selected model not found: {request.model}")
             raise HTTPException(status_code=400, detail="Selected model not found")
         
         if request.model not in initialized_models:
+            logger.info(f"Initializing model: {request.model}")
             initialized_models[request.model] = Llama(model_path=model_path, n_ctx=2048, n_threads=4)
         
         llm = initialized_models[request.model]
         
+        logger.info(f"Generating response for message: {request.message}")
         output = llm(
             request.message,
-            max_tokens=100,
+            max_tokens=500,
             stop=["Human:", "\n"],
             echo=False
         )
         
         response_text = output['choices'][0]['text'].strip()
+        logger.info(f"Generated response: {response_text}")
         
         return ChatResponse(response=response_text)
     except Exception as e:
+        logger.error(f"Error in chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
@@ -120,6 +130,7 @@ cat > frontend/index.html << EOL
         #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
         #send-button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; margin-left: 10px; cursor: pointer; }
         .model-select { padding: 10px; margin-bottom: 10px; }
+        #loading { text-align: center; padding: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -129,6 +140,7 @@ cat > frontend/index.html << EOL
         </select>
         <div class="chat-messages" id="chat-messages">
         </div>
+        <div id="loading">Loading...</div>
         <div class="input-area">
             <input type="text" id="user-input" placeholder="Type your message...">
             <button id="send-button">Send</button>
@@ -140,6 +152,7 @@ cat > frontend/index.html << EOL
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
         const modelSelect = document.getElementById('model-select');
+        const loadingIndicator = document.getElementById('loading');
 
         async function fetchModels() {
             try {
@@ -166,7 +179,14 @@ cat > frontend/index.html << EOL
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.classList.add(isUser ? 'user-message' : 'ai-message');
-            messageDiv.textContent = content;
+            
+            const paragraphs = content.split('\n');
+            paragraphs.forEach(paragraph => {
+                const p = document.createElement('p');
+                p.textContent = paragraph;
+                messageDiv.appendChild(p);
+            });
+            
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -183,6 +203,7 @@ cat > frontend/index.html << EOL
             if (message) {
                 addMessage(message, true);
                 userInput.value = '';
+                loadingIndicator.style.display = 'block';
                 
                 try {
                     const response = await fetch('http://localhost:8000/chat', {
@@ -205,6 +226,8 @@ cat > frontend/index.html << EOL
                 } catch (error) {
                     console.error('Error:', error);
                     addMessage('Sorry, there was an error processing your request.', false);
+                } finally {
+                    loadingIndicator.style.display = 'none';
                 }
             }
         }
@@ -251,6 +274,15 @@ source speedllama_env/bin/activate
 pip install --upgrade pip
 pip install fastapi uvicorn pydantic llama-cpp-python
 
+# Check available disk space
+REQUIRED_SPACE=1500000000  # 1.5 GB in bytes
+AVAILABLE_SPACE=$(df -P . | awk 'NR==2 {print $4}')
+
+if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
+    echo "Not enough disk space. At least 1.5 GB is required."
+    exit 1
+fi
+
 # Check if the GGUF model file already exists
 MODEL_FILE="models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf"
 if [ -f "$MODEL_FILE" ]; then
@@ -258,7 +290,10 @@ if [ -f "$MODEL_FILE" ]; then
 else
     # Download the dolphin-2.9.3-qwen2-0.5b GGUF model
     echo "Downloading dolphin-2.9.3-qwen2-0.5b GGUF model..."
-    curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o "$MODEL_FILE"
+    if ! curl -L "https://huggingface.co/mradermacher/dolphin-2.9.3-qwen2-0.5b-GGUF/resolve/main/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf?download=true" -o "$MODEL_FILE"; then
+        echo "Failed to download the model. Please check your internet connection and try again."
+        exit 1
+    fi
 fi
 
 # Check if Docker is installed
@@ -278,6 +313,18 @@ fi
 # Build and start the Docker containers
 echo "Building and starting Docker containers..."
 docker-compose up --build -d
+
+# Function to wait for the backend to be ready
+wait_for_backend() {
+    echo "Waiting for the backend to be ready..."
+    while ! curl -s http://localhost:8000/models > /dev/null; do
+        sleep 1
+    done
+    echo "Backend is ready!"
+}
+
+# Wait for the backend to be ready
+wait_for_backend
 
 echo "Setup complete! Your local ChatGPT clone is now running."
 echo "Frontend: http://localhost:8080"
