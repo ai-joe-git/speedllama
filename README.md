@@ -9,7 +9,7 @@ Just a simple HTML UI for Ollama
 ## Usage
 
 ```
-git clone [https://github.com/ollama-ui/ollama-ui](https://github.com/ai-joe-git/speedllama.git)
+git clone https://github.com/ai-joe-git/speedllama.git
 cd ollama-ui
 make
 
