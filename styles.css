@@ -1,0 +1,102 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(45deg, #6e45e2, #88d3ce);
+    color: #333;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    width: 80%;
+    max-width: 800px;
+}
+
+h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.model-selection {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#model-select, #model-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+#chat-container {
+    height: 400px;
+    overflow-y: auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.user-message {
+    background: rgba(255, 255, 255, 0.3);
+    align-self: flex-end;
+}
+
+.ollama-message {
+    background: rgba(0, 0, 0, 0.1);
+    align-self: flex-start;
+}
+
+.input-container {
+    display: flex;
+    gap: 10px;
+}
+
+#user-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.glassmorphic-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.glassmorphic-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
