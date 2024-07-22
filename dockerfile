@@ -1,25 +1,29 @@
-# Use Ubuntu as the base image
-FROM ubuntu:22.04
+# Build stage
+FROM ubuntu:22.04 AS builder
 
-# Install necessary dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    git \
-    nodejs \
-    npm \
-    fonts-roboto
+RUN apt-get update && apt-get install -y curl
 
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
+# Runtime stage
+FROM ubuntu:22.04
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    nodejs \
+    npm \
+    fonts-roboto \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Ollama from the builder stage
+COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
+
 # Set up a directory for our web application
 WORKDIR /app
 
-# Copy the HTML and JavaScript files
-COPY index.html .
-COPY script.js .
-COPY styles.css .
+# Copy the web application files
+COPY index.html script.js styles.css ./
 
 # Install a simple HTTP server
 RUN npm install -g http-server
