@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Ollama Chat</h1>
+        
+        <div id="api-config">
+            <input type="text" id="api-url" value="/api" placeholder="Ollama API URL">
+            <button id="update-api">Update API URL</button>
+        </div>
+
+        <div id="model-selection">
+            <select id="model-select">
+                <option value="">Select a model</option>
+            </select>
+            <input type="text" id="custom-model" placeholder="Enter model name to pull">
+            <button id="pull-model">Pull Model</button>
+        </div>
+
+        <div id="chat-output"></div>
+
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type your message...">
+            <button id="send-message">Send</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+    "name": "ollama-chat",
+    "version": "1.0.0",
+    "description": "Ollama Chat Application",
+    "main": "server.js",
+    "dependencies": {
+      "express": "^4.17.1",
+      "http-proxy-middleware": "^2.0.1"
+    }
+  }
