@@ -275,13 +275,13 @@ pip install --upgrade pip
 pip install fastapi uvicorn pydantic llama-cpp-python
 
 # Check available disk space
-REQUIRED_SPACE=100000000  # 100 MB in bytes
-AVAILABLE_SPACE=$(df -P . | awk 'NR==2 {print $4}')
+# REQUIRED_SPACE=100000000  # 100 MB in bytes
+# AVAILABLE_SPACE=$(df -P . | awk 'NR==2 {print $4}')
 
-if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
-    echo "Not enough disk space. At least 1.5 GB is required."
-    exit 1
-fi
+# if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
+#    echo "Not enough disk space. At least 1.5 GB is required."
+#    exit 1
+# fi
 
 # Check if the GGUF model file already exists
 MODEL_FILE="models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf"
