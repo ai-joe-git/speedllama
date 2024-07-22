@@ -275,7 +275,7 @@ pip install --upgrade pip
 pip install fastapi uvicorn pydantic llama-cpp-python
 
 # Check available disk space
-REQUIRED_SPACE=1500000000  # 1.5 GB in bytes
+REQUIRED_SPACE=100000000  # 100 MB in bytes
 AVAILABLE_SPACE=$(df -P . | awk 'NR==2 {print $4}')
 
 if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
