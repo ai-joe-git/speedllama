@@ -115,6 +115,8 @@ EOL
 cat > frontend/index.html << EOL
 <!DOCTYPE html>
 <html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -148,95 +150,97 @@ cat > frontend/index.html << EOL
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
-        const modelSelect = document.getElementById('model-select');
-        const loadingIndicator = document.getElementById('loading');
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const modelSelect = document.getElementById('model-select');
+            const loadingIndicator = document.getElementById('loading');
 
-        async function fetchModels() {
-            try {
-                const response = await fetch('http://localhost:8001/models');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch models');
-                }
-                const models = await response.json();
-                models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error fetching models:', error);
-                addMessage('Failed to load models. Please try again later.', false);
-            }
-        }
-
-        fetchModels();
-
-        function addMessage(content, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.classList.add(isUser ? 'user-message' : 'ai-message');
-            
-            const paragraphs = content.split('\n');
-            paragraphs.forEach(paragraph => {
-                const p = document.createElement('p');
-                p.textContent = paragraph;
-                messageDiv.appendChild(p);
-            });
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            const selectedModel = modelSelect.value;
-
-            if (!selectedModel) {
-                addMessage('Please select a model first.', false);
-                return;
-            }
-
-            if (message) {
-                addMessage(message, true);
-                userInput.value = '';
-                loadingIndicator.style.display = 'block';
-                
+            async function fetchModels() {
                 try {
-                    const response = await fetch('http://localhost:8001/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            message: message,
-                            model: selectedModel
-                        }),
-                    });
-                    
+                    const response = await fetch('http://localhost:8001/models');
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error('Failed to fetch models');
                     }
-                    
-                    const data = await response.json();
-                    addMessage(data.response, false);
+                    const models = await response.json();
+                    models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
                 } catch (error) {
-                    console.error('Error:', error);
-                    addMessage('Sorry, there was an error processing your request.', false);
-                } finally {
-                    loadingIndicator.style.display = 'none';
+                    console.error('Error fetching models:', error);
+                    addMessage('Failed to load models. Please try again later.', false);
                 }
             }
-        }
 
-        sendButton.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
+            fetchModels();
+
+            function addMessage(content, isUser) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(isUser ? 'user-message' : 'ai-message');
+                
+                const paragraphs = content.split('\n');
+                paragraphs.forEach(paragraph => {
+                    const p = document.createElement('p');
+                    p.textContent = paragraph;
+                    messageDiv.appendChild(p);
+                });
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
+
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                const selectedModel = modelSelect.value;
+
+                if (!selectedModel) {
+                    addMessage('Please select a model first.', false);
+                    return;
+                }
+
+                if (message) {
+                    addMessage(message, true);
+                    userInput.value = '';
+                    loadingIndicator.style.display = 'block';
+                    
+                    try {
+                        const response = await fetch('http://localhost:8001/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ 
+                                message: message,
+                                model: selectedModel
+                            }),
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        
+                        const data = await response.json();
+                        addMessage(data.response, false);
+                    } catch (error) {
+                        console.error('Error:', error);
+                        addMessage('Sorry, there was an error processing your request.', false);
+                    } finally {
+                        loadingIndicator.style.display = 'none';
+                    }
+                }
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
         });
     </script>
 </body>
