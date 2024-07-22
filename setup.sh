@@ -156,7 +156,7 @@ cat > frontend/index.html << EOL
 
         async function fetchModels() {
             try {
-                const response = await fetch('http://localhost:8000/models');
+                const response = await fetch('http://localhost:8001/models');
                 if (!response.ok) {
                     throw new Error('Failed to fetch models');
                 }
@@ -206,7 +206,7 @@ cat > frontend/index.html << EOL
                 loadingIndicator.style.display = 'block';
                 
                 try {
-                    const response = await fetch('http://localhost:8000/chat', {
+                    const response = await fetch('http://localhost:8001/chat', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./models:/app/models
     environment:
@@ -273,15 +273,6 @@ source speedllama_env/bin/activate
 # Upgrade pip and install dependencies in the virtual environment
 pip install --upgrade pip
 pip install fastapi uvicorn pydantic llama-cpp-python
-
-# Check available disk space
-# REQUIRED_SPACE=100000000  # 100 MB in bytes
-# AVAILABLE_SPACE=$(df -P . | awk 'NR==2 {print $4}')
-
-# if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
-#    echo "Not enough disk space. At least 1.5 GB is required."
-#    exit 1
-# fi
 
 # Check if the GGUF model file already exists
 MODEL_FILE="models/dolphin-2.9.3-qwen2-0.5b.Q5_K_M.gguf"
@@ -317,7 +308,7 @@ docker-compose up --build -d
 # Function to wait for the backend to be ready
 wait_for_backend() {
     echo "Waiting for the backend to be ready..."
-    while ! curl -s http://localhost:8000/models > /dev/null; do
+    while ! curl -s http://localhost:8001/models > /dev/null; do
         sleep 1
     done
     echo "Backend is ready!"
@@ -328,7 +319,7 @@ wait_for_backend
 
 echo "Setup complete! Your local ChatGPT clone is now running."
 echo "Frontend: http://localhost:8080"
-echo "Backend: http://localhost:8000"
+echo "Backend: http://localhost:8001"
 
 # Deactivate the virtual environment
 deactivate
