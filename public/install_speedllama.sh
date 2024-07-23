@@ -18,27 +18,32 @@ print_message "Initializing npm project and installing dependencies..."
 npm init -y > /dev/null
 npm install express > /dev/null
 
-# Create public directory if it doesn't exist
-print_message "Creating public directory if it doesn't exist..."
+# Create public directory
+print_message "Creating public directory..."
 mkdir -p public
 
-# Check if index.html exists
-if [ ! -f public/index.html ]; then
-    print_message "Warning: index.html not found in public folder. Please ensure it exists before running the server."
-fi
+# Download index.html
+print_message "Downloading index.html..."
+curl -s -o public/index.html https://raw.githubusercontent.com/ai-joe-git/speedllama/main/public/index.html
 
 # Create server.js
 print_message "Creating server.js..."
 cat << EOF > server.js
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(500).send('Error: index.html not found');
+  }
 });
 
 app.listen(port, () => {
