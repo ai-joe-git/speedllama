@@ -1,5 +1,8 @@
 # SpeedLLama
-<video src="demo.mp4" alt="SpeedLLama Demo" width="600" align="center">
+
+
+https://github.com/user-attachments/assets/fbd3bb32-6549-4e17-877e-ef884fbb0d79
+
 
 
 SpeedLLama is a lightweight web server application.
