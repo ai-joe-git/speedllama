@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ollama Chat Interface</title>
+    <title>SpeedLLama</title>
     <style>
-        /* Existing CSS styles */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -52,7 +51,7 @@
             border-radius: 10px;
             border: none;
             background: rgba(255, 255, 255, 0.2);
-            color: #fff;
+            color: #ffffff;
             transition: all 0.3s ease;
         }
 
@@ -113,11 +112,79 @@
             text-align: left;
             background: rgba(46, 204, 113, 0.3);
         }
+
+        .code-block {
+            position: relative;
+            background-color: #282c34;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .code-block code {
+            color: #abb2bf;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 3px;
+            width: 150px;
+            height: 45px;
+        }
+
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+
+        .copy-button:active {
+            background-color: #3e8e41;
+        }
+
+        .html-preview {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: white;
+            overflow: auto;
+            max-height: 300px;
+        }
+
+        .html-preview-toggle {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
 </head>
 <body>
     <div class="chat-container">
-        <h1 class="chat-title">Ollama Chat</h1>
+        <h1 class="chat-title">SpeedLLama</h1>
         <div class="input-group">
             <input type="text" id="api-url" placeholder="API URL" value="http://localhost:11434">
             <button onclick="updateAPI()">Update API URL</button>
@@ -136,6 +203,7 @@
     <script>
         let apiUrl = 'http://localhost:11434';
         let currentModel = '';
+        let currentResponse = '';
 
         async function fetchModels() {
             try {
@@ -200,6 +268,7 @@
             if (message && currentModel) {
                 addMessage('User', message);
                 userInput.value = '';
+                currentResponse = '';
 
                 try {
                     const response = await fetch(`${apiUrl}/api/generate`, {
@@ -210,14 +279,28 @@
                             prompt: message
                         })
                     });
-                    const responseText = await response.text();
-                    console.log(responseText); // Log raw response text for debugging
+                    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
 
-                    // Split the response text into individual JSON objects
-                    const jsonObjects = responseText.split('\n').filter(line => line.trim() !== '');
-                    for (const jsonObject of jsonObjects) {
-                        const data = JSON.parse(jsonObject);
-                        addMessage('Assistant', data.response);
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.trim() !== '') {
+                                try {
+                                    const data = JSON.parse(line);
+                                    currentResponse += data.response;
+                                    updateAssistantMessage(currentResponse);
+                                } catch (error) {
+                                    console.error('Error parsing JSON:', error);
+                                }
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('Error sending message:', error);
@@ -236,6 +319,116 @@
             messageElement.textContent = `${sender}: ${content}`;
             chatArea.appendChild(messageElement);
             chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function updateAssistantMessage(content) {
+            const chatArea = document.getElementById('chat-messages');
+            let assistantMessage = chatArea.querySelector('.assistant-message:last-child');
+            
+            if (!assistantMessage) {
+                assistantMessage = document.createElement('div');
+                assistantMessage.classList.add('message', 'assistant-message');
+                chatArea.appendChild(assistantMessage);
+            }
+            
+            const formattedContent = formatMessageContent(content);
+            assistantMessage.innerHTML = `Assistant: ${formattedContent}`;
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // Apply syntax highlighting to code blocks
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        }
+
+        function formatMessageContent(content) {
+            // Replace code blocks
+            content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+                const uniqueId = 'code-' + Math.random().toString(36).substr(2, 9);
+                return `
+                    <div class="code-block" id="${uniqueId}">
+                        <button class="copy-button" onclick="copyCode('${uniqueId}')">Copy</button>
+                        <pre><code class="${language || ''}">${escapeHtml(code.trim())}</code></pre>
+                    </div>
+                `;
+            });
+
+            // Replace inline code
+            content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Handle HTML content
+            content = content.replace(/(<\w+>[\s\S]*?<\/\w+>)/g, (match) => {
+                const escapedHtml = escapeHtml(match);
+                const uniqueId = 'html-' + Math.random().toString(36).substr(2, 9);
+                return `
+                    <div class="html-block" id="${uniqueId}">
+                        <button class="html-preview-toggle" onclick="toggleHtmlPreview(this)">Toggle HTML Preview</button>
+                        <button class="copy-button" onclick="copyCode('${uniqueId}')">Copy</button>
+                        <div class="code-block"><pre><code class="html">${escapedHtml}</code></pre></div>
+                        <div class="html-preview" style="display:none;">${match}</div>
+                    </div>
+                `;
+            });
+
+            return content;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function toggleHtmlPreview(button) {
+    const htmlBlock = button.parentElement;
+    const codeBlock = htmlBlock.querySelector('.code-block');
+    const htmlPreview = htmlBlock.querySelector('.html-preview');
+    
+    if (htmlPreview.style.display === 'none') {
+        codeBlock.style.display = 'none';
+        htmlPreview.style.display = 'block';
+        button.textContent = 'Show HTML Code';
+        
+        // Create an iframe to render the HTML content
+        const iframe = document.createElement('iframe');
+        iframe.srcdoc = htmlPreview.innerHTML;
+        iframe.style.width = '100%';
+        iframe.style.height = '300px';
+        iframe.style.border = 'none';
+        
+        // Clear the preview div and append the iframe
+        htmlPreview.innerHTML = '';
+        htmlPreview.appendChild(iframe);
+    } else {
+        codeBlock.style.display = 'block';
+        htmlPreview.style.display = 'none';
+        button.textContent = 'Toggle HTML Preview';
+    }
+}
+
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            let textToCopy;
+
+            if (element.classList.contains('html-block')) {
+                textToCopy = element.querySelector('.code-block code').textContent;
+            } else {
+                textToCopy = element.querySelector('code').textContent;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const copyButton = element.querySelector('.copy-button');
+                const originalText = copyButton.textContent;
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyButton.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
         }
 
         // Initialize
