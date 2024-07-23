@@ -11,7 +11,7 @@ cd "$temp_dir"
 
 # Download the installation script
 print_message "Downloading SpeedLLama installation script..."
-curl -s -O https://raw.githubusercontent.com/yourusername/SpeedLLama/main/install_speedllama.sh
+curl -s -O https://raw.githubusercontent.com/ai-joe-git/speedllama/main/public/install_speedllama.sh
 
 # Make the script executable
 print_message "Making the installation script executable..."
