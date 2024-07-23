@@ -3,33 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ollama Chat</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Ollama Chat Interface</title>
+    <style>
+        /* Existing CSS styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #8e44ad, #3498db);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
+        }
+
+        .chat-title {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        input::placeholder, select {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        button {
+            background: rgba(52, 152, 219, 0.7);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: rgba(52, 152, 219, 0.9);
+        }
+
+        .chat-area {
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            overflow-y: auto;
+            color: #fff;
+        }
+
+        .send-button {
+            background: rgba(46, 204, 113, 0.7);
+        }
+
+        .send-button:hover {
+            background: rgba(46, 204, 113, 0.9);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-container, .input-group, .chat-area {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-message {
+            text-align: right;
+            background: rgba(52, 152, 219, 0.3);
+        }
+
+        .assistant-message {
+            text-align: left;
+            background: rgba(46, 204, 113, 0.3);
+        }
+    </style>
 </head>
 <body>
-    <div id="chat-container">
-        <h1>Ollama Chat</h1>
-        
-        <div id="api-config">
-            <input type="text" id="api-url" value="/api" placeholder="Ollama API URL">
-            <button id="update-api">Update API URL</button>
+    <div class="chat-container">
+        <h1 class="chat-title">Ollama Chat</h1>
+        <div class="input-group">
+            <input type="text" id="api-url" placeholder="API URL" value="http://localhost:11434">
+            <button onclick="updateAPI()">Update API URL</button>
         </div>
-
-        <div id="model-selection">
-            <select id="model-select">
-                <option value="">Select a model</option>
-            </select>
-            <input type="text" id="custom-model" placeholder="Enter model name to pull">
-            <button id="pull-model">Pull Model</button>
+        <div class="input-group">
+            <select id="model-select" onchange="selectModel(this.value)"></select>
+            <input type="text" id="model-name" placeholder="Enter model name to pull">
+            <button onclick="pullModel()">Pull Model</button>
         </div>
-
-        <div id="chat-output"></div>
-
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type your message...">
-            <button id="send-message">Send</button>
+        <div class="chat-area" id="chat-messages"></div>
+        <div class="input-group">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script>
+        let apiUrl = 'http://localhost:11434';
+        let currentModel = '';
+
+        async function fetchModels() {
+            try {
+                const response = await fetch(`${apiUrl}/api/tags`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                const selectElement = document.getElementById('model-select');
+                selectElement.innerHTML = '<option value="">Select a model</option>';
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.name;
+                    selectElement.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching models:', error);
+                addMessage('System', 'Error fetching available models. Failed to fetch models');
+            }
+        }
+
+        function updateAPI() {
+            const newUrl = document.getElementById('api-url').value;
+            if (newUrl) {
+                apiUrl = newUrl;
+                addMessage('System', `API URL updated to: ${apiUrl}`);
+                fetchModels();
+            }
+        }
+
+        async function pullModel() {
+            const modelName = document.getElementById('model-name').value;
+            if (modelName) {
+                try {
+                    const response = await fetch(`${apiUrl}/api/pull`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: modelName })
+                    });
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    addMessage('System', `Model ${modelName} pulled successfully`);
+                    fetchModels();
+                } catch (error) {
+                    console.error('Error pulling model:', error);
+                    addMessage('System', `Error pulling model ${modelName}`);
+                }
+            }
+        }
+
+        function selectModel(model) {
+            currentModel = model;
+            addMessage('System', `Selected model: ${currentModel}`);
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const message = userInput.value.trim();
+            if (message && currentModel) {
+                addMessage('User', message);
+                userInput.value = '';
+
+                try {
+                    const response = await fetch(`${apiUrl}/api/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: currentModel,
+                            prompt: message
+                        })
+                    });
+                    const responseText = await response.text();
+                    console.log(responseText); // Log raw response text for debugging
+
+                    // Split the response text into individual JSON objects
+                    const jsonObjects = responseText.split('\n').filter(line => line.trim() !== '');
+                    for (const jsonObject of jsonObjects) {
+                        const data = JSON.parse(jsonObject);
+                        addMessage('Assistant', data.response);
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    addMessage('System', 'Error: Unable to get response from the model');
+                }
+            } else if (!currentModel) {
+                addMessage('System', 'Please select a model first');
+            }
+        }
+
+        function addMessage(sender, content) {
+            const chatArea = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(sender.toLowerCase() + '-message');
+            messageElement.textContent = `${sender}: ${content}`;
+            chatArea.appendChild(messageElement);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // Initialize
+        fetchModels();
+
+        // Allow sending message with Enter key
+        document.getElementById('user-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
 </body>
 </html>
