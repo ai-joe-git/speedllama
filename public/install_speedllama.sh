@@ -5,15 +5,6 @@ print_message() {
     echo ">>> $1"
 }
 
-# Check if Ollama is installed
-if ! command -v ollama &> /dev/null; then
-    print_message "Ollama is not installed. Installing Ollama..."
-    curl -fsSL https://ollama.com/install.sh | sh 
-else
-    print_message "Ollama is installed. Starting Ollama server..."
-    ollama serve
-fi
-
 # Create SpeedLLama project directory
 print_message "Creating SpeedLLama project directory..."
 mkdir SpeedLLama
@@ -60,3 +51,12 @@ EOF
 # Start the SpeedLLama server
 print_message "Starting the SpeedLLama server..."
 node server.js 
+
+# Check if Ollama is installed
+if ! command -v ollama &> /dev/null; then
+    print_message "Ollama is not installed. Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh 
+else
+    print_message "Ollama is installed. Starting Ollama server..."
+    ollama serve
+fi
