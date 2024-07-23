@@ -1,5 +1,7 @@
 # SpeedLLama
 <video src="demo.webm" alt="SpeedLLama Demo" width="600" align="center">
+<video src="https://github.com/ai-joe-git/speedllama/raw/main/demo.webm" width="300" />
+
 
 SpeedLLama is a lightweight web server application.
 
