@@ -2,64 +2,119 @@
 
 # SpeedLLama
 
-This project sets up a local ChatGPT-like environment using the dolphin-2.9.3-qwen2-0.5b model. It includes a FastAPI backend and a simple HTML/JavaScript frontend, all containerized with Docker for easy deployment.
+SpeedLLama is a fast, lightweight web interface for interacting with Ollama-based language models. It provides a user-friendly chat interface that allows users to easily communicate with various AI models through the Ollama API.
 
-## One-Line Installation
+## Features
 
-To install and run this project, use the following command:
+- Simple and intuitive chat interface
+- Support for multiple Ollama models
+- Real-time model selection and pulling
+- Customizable API endpoint
+- Responsive design for various screen sizes
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ai-joe-git/speedllama/main/setup.sh -o setup.sh
-chmod +x setup.sh
-sudo ./setup.sh
-```
+## Installation
 
-## Prerequisites
+### Prerequisites
 
-- Docker
-- Docker Compose
-- Curl (for the one-line installation)
+- Node.js (v14 or later)
+- npm (usually comes with Node.js)
+- Ollama installed and running on your machine or a remote server
 
-## What the Script Does
+### Steps
 
-The setup script (`setup.sh`) automatically:
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/SpeedLLama.git
+   cd SpeedLLama
+   ```
 
-1. Creates the necessary project structure
-2. Generates backend Python code
-3. Creates a Dockerfile for the backend
-4. Generates the frontend HTML/JavaScript
-5. Creates a docker-compose.yml file
-6. Downloads the dolphin-2.9.3-qwen2-0.5b GGUF model
-7. Builds and starts the Docker containers
+2. Install dependencies:
+   ```
+   npm init -y
+   npm install express
+   ```
+
+3. Create a file named `server.js` in the project root and add the following code:
+   ```javascript
+   const express = require('express');
+   const path = require('path');
+   const app = express();
+   const port = process.env.PORT || 3000;
+
+   app.use(express.static(path.join(__dirname, 'public')));
+
+   app.get('/', (req, res) => {
+     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+   });
+
+   app.listen(port, () => {
+     console.log(`SpeedLLama server running at http://localhost:${port}`);
+   });
+   ```
+
+4. Create a `public` directory in the project root and move your `index.html` file into it.
+
+5. Start the server:
+   ```
+   node server.js
+   ```
+
+6. Open your web browser and navigate to `http://localhost:3000` to use SpeedLLama.
 
 ## Usage
 
-After installation:
+1. Ensure that Ollama is running on your machine or the specified remote server.
+2. If Ollama is running on a different machine or port, update the API URL in the SpeedLLama interface.
+3. Select a model from the dropdown or pull a new model using the provided input field.
+4. Start chatting with the selected model using the message input at the bottom of the interface.
 
-1. Open a web browser and go to `http://localhost:8080`
-2. Select the model from the dropdown menu
-3. Start chatting!
+## Configuration
 
-## Customization
-
-To add more GGUF models, place them in the `models/` directory created by the script. They will automatically appear in the model selection dropdown on the frontend.
-
-## Troubleshooting
-
-If you encounter any issues, please check:
-
-1. Docker and Docker Compose are installed and running
-2. The required ports (8000 and 8080) are not in use by other applications
-3. Your system meets the resource requirements for running the AI model
+You can customize the default API URL by modifying the `apiUrl` variable in the `<script>` section of the `index.html` file.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions to SpeedLLama are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[MIT License](LICENSE)
+This project is open source and available under the [MIT License](LICENSE).
 
-## Disclaimer
+## Acknowledgements
 
-This project is for educational purposes only. Ensure you comply with the licensing terms of the AI model and all dependencies used in this project.
+- This project uses the [Ollama](https://github.com/jmorganca/ollama) API for model interaction.
+- Interface design inspired by modern chat applications.
+
+```
+
+To set up this project structure and deploy the HTML page:
+
+1. Create a new directory for your project and navigate into it:
+   ```
+   mkdir SpeedLLama
+   cd SpeedLLama
+   ```
+
+2. Create a `public` directory:
+   ```
+   mkdir public
+   ```
+
+3. Save the HTML code (the full code I provided earlier) as `index.html` in the `public` directory.
+
+4. Create a `server.js` file in the root directory with the content provided in the README.
+
+5. Initialize the project and install Express:
+   ```
+   npm init -y
+   npm install express
+   ```
+
+6. Start the server:
+   ```
+   node server.js
+   ```
+
+Now you have a basic server setup that serves your SpeedLLama HTML page. You can access it by opening a web browser and navigating to `http://localhost:3000`.
+
+This setup provides a simple way to deploy your SpeedLLama interface. For production environments, you might want to consider using process managers like PM2 and setting up HTTPS for secure connections.
