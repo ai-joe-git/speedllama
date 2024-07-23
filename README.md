@@ -16,7 +16,7 @@ SpeedLLama is a fast, lightweight web interface for interacting with Ollama-base
 You can install SpeedLLama with a single command:
 
 ```bash
-curl -s https://raw.githubusercontent.com/yourusername/SpeedLLama/main/speedllama_installer.sh | bash
+curl -s https://raw.githubusercontent.com/ai-joe-git/speedllama/main/public/speedllama_installer.sh | bash
 ```
 
 This command will download and run the installation script, which will set up SpeedLLama on your system.
