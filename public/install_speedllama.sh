@@ -50,4 +50,14 @@ EOF
 
 # Start the SpeedLLama server
 print_message "Starting the SpeedLLama server..."
-node server.js
+node server.js &
+
+# Check if Ollama is installed
+if ! command -v ollama &> /dev/null; then
+  print_message "Installing Ollama..."
+  curl -fsSL https://ollama.com/install.sh | sh > /dev/null
+fi
+
+# Start Ollama
+print_message "Starting Ollama..."
+ollama serve > /dev/null &
