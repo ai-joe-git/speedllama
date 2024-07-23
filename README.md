@@ -1,80 +1,68 @@
 # SpeedLLama
 <img src="tenor.gif" alt="SpeedLLama Logo" width="400" align="center">
 
-SpeedLLama is a fast, lightweight web interface for interacting with Ollama-based language models. It provides a user-friendly chat interface that allows users to easily communicate with various AI models through the Ollama API.
+SpeedLLama is a lightweight web server application.
 
-## Features
+## Installation and Usage
 
-- Simple and intuitive chat interface
-- Support for multiple Ollama models
-- Real-time model selection and pulling
-- Customizable API endpoint
-- Responsive design for various screen sizes
+### Option 1: Direct Installation
 
-## Quick Installation
+To install and run SpeedLLama directly on your system:
 
-You can install SpeedLLama with a single command:
+1. Run the following command in your terminal:
 
 ```bash
 curl -s https://raw.githubusercontent.com/ai-joe-git/speedllama/main/public/speedllama_installer.sh | bash
 ```
 
-This command will download and run the installation script, which will set up SpeedLLama on your system.
+2. This will download and run the SpeedLLama installer, which will set up the necessary files and start the server.
 
-## Manual Installation
+3. Once the installation is complete, you should see a message indicating that the SpeedLLama server is running at `http://localhost:3000`.
 
-If you prefer to install manually or review the installation process, follow these steps:
+### Option 2: Using Docker
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/SpeedLLama.git
-   cd SpeedLLama
-   ```
+To run SpeedLLama in a Docker container:
 
-2. Run the installation script:
-   ```
-   chmod +x install_speedllama.sh
-   ./install_speedllama.sh
-   ```
+1. Make sure you have Docker installed on your system.
 
-## Prerequisites
+2. Clone this repository:
 
-- Node.js (v14 or later)
-- npm (usually comes with Node.js)
-- Ollama installed and running on your machine or a remote server
+```bash
+git clone https://github.com/ai-joe-git/speedllama.git
+cd speedllama
+```
 
-## Usage
+3. Build the Docker image:
 
-1. Ensure that Ollama is running on your machine or the specified remote server.
-2. Open your web browser and navigate to `http://localhost:3000` to use SpeedLLama.
-3. If Ollama is running on a different machine or port, update the API URL in the SpeedLLama interface.
-4. Select a model from the dropdown or pull a new model using the provided input field.
-5. Start chatting with the selected model using the message input at the bottom of the interface.
+```bash
+docker build -t speedllama .
+```
 
-## Configuration
+4. Run the container:
 
-You can customize the default API URL by modifying the `apiUrl` variable in the `<script>` section of the `index.html` file.
+```bash
+docker run -p 3000:3000 speedllama
+```
+
+5. The SpeedLLama server will now be accessible at `http://localhost:3000`.
+
+## Features
+
+- Simple Express.js server
+- Serves static files from the `public` directory
+- Easy to install and run
+
+## Requirements
+
+- Node.js (for direct installation)
+- Docker (for containerized deployment)
 
 ## Contributing
 
-Contributions to SpeedLLama are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
-
-## Acknowledgements
-
-- This project uses the [Ollama](https://github.com/jmorganca/ollama) API for model interaction.
-- Interface design inspired by modern chat applications.
-
-## Troubleshooting
-
-If you encounter any issues during installation or usage:
-
-1. Ensure you have the latest version of Node.js and npm installed.
-2. Check that Ollama is properly installed and running.
-3. Verify your firewall settings if you're using a remote Ollama server.
-
-For more help, please open an issue on the GitHub repository.
+[MIT License](LICENSE)
 ```
+
