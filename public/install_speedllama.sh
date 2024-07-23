@@ -1,14 +1,11 @@
 #!/bin/bash
 
-# Exit immediately if a command exits with a non-zero status
-set -e
-
 # Function to print messages
 print_message() {
     echo ">>> $1"
 }
 
-# Create project directory
+# Create SpeedLLama project directory
 print_message "Creating SpeedLLama project directory..."
 mkdir SpeedLLama
 cd SpeedLLama
@@ -18,8 +15,8 @@ print_message "Initializing npm project and installing dependencies..."
 npm init -y > /dev/null
 npm install express > /dev/null
 
-# Create public directory
-print_message "Creating public directory..."
+# Create public directory if it doesn't exist
+print_message "Creating public directory if it doesn't exist..."
 mkdir -p public
 
 # Download index.html
@@ -33,9 +30,9 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
 app.get('/', (req, res) => {
   const indexPath = path.join(__dirname, 'public', 'index.html');
@@ -51,6 +48,6 @@ app.listen(port, () => {
 });
 EOF
 
-# Start the server
+# Start the SpeedLLama server
 print_message "Starting the SpeedLLama server..."
 node server.js
