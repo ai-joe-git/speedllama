@@ -1,5 +1,5 @@
 # SpeedLLama
-<img src="Screencast from 2024-07-23 07-05-52.webm" alt="SpeedLLama Demo" width="600" align="center">
+<img src="demo.webm" alt="SpeedLLama Demo" width="600" align="center">
 
 SpeedLLama is a lightweight web server application.
 
