@@ -1,11 +1,24 @@
 # SpeedLLama
 
+SpeedLLama is a modern, user-friendly web interface for interacting with Ollama, an open-source project for running large language models locally.
 
 https://github.com/user-attachments/assets/fbd3bb32-6549-4e17-877e-ef884fbb0d79
 
 
+## Features
 
-SpeedLLama is a lightweight web server application.
+- **Model Selection**: Choose from a variety of language models available through Ollama.
+- **Customizable API URL**: Easily update the Ollama API endpoint.
+- **Interactive Chat Interface**: Engage in conversations with the selected AI model.
+- **Model Management**: Pull new models directly from the interface.
+- **Responsive Design**: Beautiful, modern UI that works across devices.
+
+## Getting Started
+
+### Prerequisites
+
+- Ollama installed and running on your local machine or a remote server
+- Web browser
 
 ## Installation and Usage
 
